@@ -18,6 +18,11 @@ import re
 import sys
 from typing import Sequence
 
+# Ensure scanner package directory takes priority over any workspace directory named 'ghostflow'
+_scanner_pkg_root = str(Path(__file__).resolve().parent.parent)
+if not sys.path or sys.path[0] != _scanner_pkg_root:
+    sys.path.insert(0, _scanner_pkg_root)
+
 from .pr_intelligence import (
     analyze_pull_request,
     QualityGateConfig,
@@ -59,6 +64,13 @@ def _detect_pr_number_and_repo(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
     parser = argparse.ArgumentParser(
         prog="ghostflow-pr",
         description="GhostFlow — GitHub Pull Request Intelligence & Quality Gate",
