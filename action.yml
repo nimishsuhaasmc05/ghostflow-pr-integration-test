@@ -1,0 +1,105 @@
+name: 'GhostFlow PR Intelligence'
+description: 'Automated API contract, database schema drift, and change impact intelligence for GitHub Pull Requests'
+author: 'GhostFlow Team'
+
+inputs:
+  project-path:
+    description: 'Path to target project directory to scan'
+    required: false
+    default: '.'
+  base-ref:
+    description: 'Base branch or revision to compare against'
+    required: false
+    default: '${{ github.base_ref }}'
+  head-ref:
+    description: 'Head branch or revision'
+    required: false
+    default: '${{ github.head_ref || github.sha }}'
+  mode:
+    description: 'Quality gate mode: "report" (non-blocking), "warn" (warning annotations), or "enforce" (fails on defect)'
+    required: false
+    default: 'report'
+  fail-on:
+    description: 'Defect severity or specific rule IDs that trigger quality gate failure (e.g. "high", "medium", or "API001,DB001,DB007")'
+    required: false
+    default: 'high'
+  only-new:
+    description: 'Only evaluate quality gate against newly introduced findings in this PR'
+    required: false
+    default: 'true'
+  post-comment:
+    description: 'Publish or update an existing comment on the Pull Request'
+    required: false
+    default: 'true'
+  github-token:
+    description: 'GitHub token for PR commenting (e.g. secrets.GITHUB_TOKEN)'
+    required: false
+    default: '${{ github.token }}'
+  openapi-path:
+    description: 'Path to optional OpenAPI specification file'
+    required: false
+    default: ''
+
+outputs:
+  verdict:
+    description: 'Quality gate verdict: PASS, WARN, or FAIL'
+    value: ${{ steps.run-ghostflow.outputs.verdict }}
+  findings-count:
+    description: 'Total number of findings in head'
+    value: ${{ steps.run-ghostflow.outputs.findings-count }}
+  new-findings-count:
+    description: 'Number of newly introduced findings in this PR'
+    value: ${{ steps.run-ghostflow.outputs.new-findings-count }}
+  resolved-findings-count:
+    description: 'Number of resolved findings fixed in this PR'
+    value: ${{ steps.run-ghostflow.outputs.resolved-findings-count }}
+  database-findings-count:
+    description: 'Number of database schema diagnostic findings'
+    value: ${{ steps.run-ghostflow.outputs.database-findings-count }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install GhostFlow Scanner
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -r ${{ github.action_path }}/requirements.txt
+        python -m pip install -e ${{ github.action_path }}/backend/scanner
+
+    - name: Run GhostFlow PR Intelligence
+      id: run-ghostflow
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_REF: ${{ github.ref }}
+        GITHUB_BASE_REF: ${{ inputs.base-ref }}
+        GITHUB_HEAD_REF: ${{ inputs.head-ref }}
+        GHOSTFLOW_MODE: ${{ inputs.mode }}
+        GHOSTFLOW_FAIL_ON: ${{ inputs.fail-on }}
+        GHOSTFLOW_OPENAPI_PATH: ${{ inputs.openapi-path }}
+      run: |
+        EXTRA_ARGS=()
+        if [ "${{ inputs.only-new }}" = "false" ]; then
+          EXTRA_ARGS+=(--include-existing)
+        fi
+        if [ "${{ inputs.post-comment }}" = "false" ]; then
+          EXTRA_ARGS+=(--no-post-comment)
+        fi
+        if [ -n "${{ inputs.openapi-path }}" ]; then
+          EXTRA_ARGS+=(--openapi "${{ inputs.openapi-path }}")
+        fi
+
+        python -m ghostflow.pr_cli "${{ inputs.project-path }}" \
+          --base "${{ inputs.base-ref }}" \
+          --head "${{ inputs.head-ref }}" \
+          --mode "${{ inputs.mode }}" \
+          --fail-on "${{ inputs.fail-on }}" \
+          "${EXTRA_ARGS[@]}"
+

@@ -1,0 +1,33 @@
+name: GhostFlow PR Intelligence
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  contract-intelligence:
+    name: GhostFlow API & Schema Intelligence
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          # Full history is recommended so GhostFlow can compare base and head revisions
+          fetch-depth: 0
+
+      - name: Run GhostFlow PR Intelligence
+        uses: ./
+        with:
+          project-path: '.'
+          base-ref: ${{ github.base_ref }}
+          head-ref: ${{ github.head_ref }}
+          mode: 'report' # 'report', 'warn', or 'enforce'
+          fail-on: 'high'
+          only-new: 'true'
+          post-comment: 'true'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+

@@ -1,0 +1,2 @@
+[console_scripts]
+ghostflow = ghostflow.cli:main

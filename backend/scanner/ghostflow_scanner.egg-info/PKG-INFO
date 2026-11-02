@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: ghostflow-scanner
+Version: 0.1.0
+Summary: Local-first frontend/backend API contract analyzer
+Requires-Python: >=3.10
+Requires-Dist: pydantic<3.0,>=2.8
+Requires-Dist: PyYAML<7.0,>=6.0
