@@ -287,12 +287,13 @@ def explain_finding(finding: Finding, root_path: Path | None = None) -> RepairEx
 
 def _generate_diff(file_lines: list[str], new_lines: list[str], rel_file: str) -> str:
     """Generate git-compatible unified diff."""
+    norm_path = rel_file.replace("\\", "/")
     diff = list(
         difflib.unified_diff(
             file_lines,
             new_lines,
-            fromfile=f"a/{rel_file.replace('\\', '/')}",
-            tofile=f"b/{rel_file.replace('\\', '/')}",
+            fromfile=f"a/{norm_path}",
+            tofile=f"b/{norm_path}",
             lineterm="",
         )
     )
