@@ -76,6 +76,8 @@ runs:
       id: run-ghostflow
       shell: bash
       env:
+        PYTHONPATH: ${{ github.action_path }}/backend/scanner
+        PYTHONIOENCODING: utf-8
         GITHUB_TOKEN: ${{ inputs.github-token }}
         GITHUB_REPOSITORY: ${{ github.repository }}
         GITHUB_REF: ${{ github.ref }}
